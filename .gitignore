@@ -1,0 +1,20 @@
+# System Files
+.DS_Store
+Thumbs.db
+*.swp
+*.log
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+
+# Project Specific
+tmp/
+.env
+
+# Skills (Exclude downloads but keep scripts/docs)
+skills/*
+!skills/sync_skills.sh
+!skills/SYNC_SKILLS_README.md
+!skills/API_KEY_NEEDED.md
