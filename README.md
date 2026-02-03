@@ -18,6 +18,8 @@ Clawfather repo is a pre-install checklist  **before** you install OpenClaw.
 You can also sync skills using `./sync_skills.sh` that I hand picked from clawhub.ai 
 **LAST UPDATE:** Feb 3, 2026.
 
+![skills sync](skills.png)
+
 Please go through steps 1..8 before installing OpenClaw.
 
 Why? So that you don't fuck up. From there, you are on your own my friend.
