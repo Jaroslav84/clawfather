@@ -8,4 +8,4 @@ DEST="$(pwd)"
 curl -fsSL "$REPO" | tar xz -C "$DEST"
 cd "$DEST/clawfather-master"
 chmod +x src/install_clawfather.sh
-exec bash src/install_clawfather.sh "$@"
+exec bash src/install_clawfather.sh "$@" < /dev/tty
