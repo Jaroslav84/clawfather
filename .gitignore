@@ -7,7 +7,7 @@
 .env.install
 
 # User config (wizard writes here; paths, model choices)
-config.yaml
+
 
 # Dependencies
 node_modules/

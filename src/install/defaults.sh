@@ -106,13 +106,13 @@ load_security_defaults_from_config() {
     fi
 }
 
-SEC_OPTS_DEFAULT="1,2,3,4,5,7,8"
+SEC_OPTS_DEFAULT="1,3,4,5,7,8"
 [ -f "$_CONFIG" ] && load_security_defaults_from_config "$_CONFIG"
 
 # Convert 1-based SEC_OPTS_DEFAULT to 0-based for checklist_tui.
 # When SEC_ROOT_HIDDEN=true (fourplayers/openclaw), checklist has 12 options (no Root); drop option 2 and renumber.
 sec_opts_for_checklist() {
-    local def="${SEC_OPTS_DEFAULT:-1,2,3,4,5,7,8}"
+    local def="${SEC_OPTS_DEFAULT:-1,3,4,5,7,8}"
     if [ "${SEC_ROOT_HIDDEN:-false}" = "true" ]; then
         # 12-option list: 1=Sandbox 2=Safe 3=Bridge 4=Browser 5=Tools 6=Hooks 7=NoNewPrivs 8=AutoStart 9=Paranoid 10=Offline 11=ReadOnly 12=God
         # From 13-option 1-based: remove 2 (Root); for n>2 use n-1 to get 12-option 1-based; then to 0-based subtract 1
