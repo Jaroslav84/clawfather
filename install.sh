@@ -1,6 +1,6 @@
 #!/bin/bash
 # Bootstrap: downloads clawfather into current directory and runs the real installer.
-# Usage: curl -fsSL https://raw.githubusercontent.com/Jaroslav84/clawfather/master/install.sh | bash
+# Usage: bash <(curl -fsSL https://raw.githubusercontent.com/Jaroslav84/clawfather/master/install.sh)
 
 set -e
 REPO="https://github.com/Jaroslav84/clawfather/archive/refs/heads/master.tar.gz"
