@@ -251,12 +251,15 @@ if [ -n "${DOCKER_IMAGE_SEL:-}" ]; then
 fi
 select_tui "Docker Image" "$IMG_OPTIONS" "$IMG_DESC" "$IMG_SUBTITLES" "DOCKER_IMAGE_SEL" "${DOCKER_IMAGE_DEFAULT_INDEX}" "true" 1 0
 
-# fourplayers/openclaw: used by executor for CLI/entrypoint; Root Mode is always visible in Security checklist
+# fourplayers/openclaw: Root Mode is hidden (forced on); other images default root off
 FOURPLAYERS_IMAGE=false
 case "${DOCKER_IMAGE_SEL:-}" in *fourplayers/openclaw*) FOURPLAYERS_IMAGE=true ;; esac
 export FOURPLAYERS_IMAGE
 SEC_ROOT_HIDDEN=false
+[ "$FOURPLAYERS_IMAGE" = true ] && SEC_ROOT_HIDDEN=true
 export SEC_ROOT_HIDDEN
+# fourplayers: root on by default (injected in security.sh); alpha/alpine: root off
+[ "$FOURPLAYERS_IMAGE" = true ] && SEC_OPTS_DEFAULT="1,2,3,4,5,7,8"
 
 ask_yes_no_tui "Install local LLM using ollama?" "n" "USE_OLLAMA_SEL" 1 0
 [[ "$USE_OLLAMA_SEL" =~ ^[Yy] ]] && USE_OLLAMA=true || USE_OLLAMA=false
