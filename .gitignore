@@ -1,20 +1,45 @@
-# System Files
-.DS_Store
-Thumbs.db
-*.swp
-*.log
+# Environment variables (secrets, API keys — never commit)
+.env
+.env.*
+!.env.example
+
+# Install-generated (paths, user choices)
+.env.install
+
+# User config (wizard writes here; paths, model choices)
+config.yaml
 
 # Dependencies
 node_modules/
+dist/
+build/
+
+# IDEs
+.idea/
+# Ignore .vscode/settings.* except settings.json (only project settings committed)
+.vscode/settings.*
+!.vscode/settings.json
+*.swp
+.DS_Store
+
+# OpenClaw runtime (sessions, identity, credentials, tokens — never commit)
+.openclaw/
+*.log
+log
+logs/
+
+# Python (skills)
 __pycache__/
 *.pyc
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Project Specific
-tmp/
-.env
+# Temp
+.tmp_sync/
 
-# Skills (Exclude downloads but keep scripts/docs)
-skills/*
-!skills/sync_skills.sh
-!skills/SYNC_SKILLS_README.md
-!skills/API_KEY_NEEDED.md
+# Skills: ignore downloaded skill subdirs; keep root /*.* (e.g. CLAWHUB_SKILLS.md, SYNC_SKILLS_README.md)
+skills/*/
+
+# Reference (Dockerfiles / examples — not used by Clawfather run)
+reference/

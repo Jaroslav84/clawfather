@@ -1,0 +1,11 @@
+- test all docker images [tested: 2/5]
+  - fix commands for fourplayers/openclaw, test more
+- test on Linux (should work)
+- now that pairing works -> maybe we dont need the allowInsecure + reboot hack?
+- test other options in wizzard (remote gateway, tailsafe, loopback, etc)
+- auto security check skills as post install step
+- remove the bundled skills that comes with openclaw!!! Heard of Twitter incident?
+- NEW: allow to select/deselect my selected skills to install inside wizzard
+- move 'ywizz' library to a separate repo
+- add 'docs' reader inside wizzard. Or Deepwiki?
+- build openclaw from source option using Dockerfile?

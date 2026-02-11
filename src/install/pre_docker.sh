@@ -1,0 +1,69 @@
+#!/bin/bash
+# --- Pre-Docker: sudo, prereqs, wipe, workspace, gateway ---
+# Requires: security.sh, gateway.sh, workspace.sh (sourced by executor); ywizz, checks, utils
+
+run_pre_docker() {
+    _need_sudo_banner=0
+    if ! sudo -n true 2>/dev/null; then
+        _need_sudo_banner=1
+        if [ -t 1 ]; then
+            ywizz_ascii_secondary
+            center_ascii "I'm gonna make you an offer you can't refuse."
+            center_ascii "But first, I need your password!"
+            printf '\n'
+        fi
+    fi
+    sudo -v
+    if [ "$_need_sudo_banner" = "1" ] && [ -t 1 ]; then
+        ywizz_clear_ascii
+    fi
+    (while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done) 2>/dev/null &
+
+    if [ "$USE_OLLAMA" = true ]; then
+        check_prerequisites
+    else
+        check_prerequisites skip_ollama
+    fi
+
+    export PATH=$PATH:/usr/local/bin:/opt/homebrew/bin
+    cd "$PROJECT_DIR" || exit 1
+    export COMPOSE_FILE="$PROJECT_DIR/docker-compose.yml"
+    export COMPOSE_PROJECT_NAME="$(get_compose_project_name "${OPENCLAW_CONFIG_DIR:-${OPENCLAW_CONFIG_DIR_DEFAULT:-$HOME/.openclaw}}")"
+    TUI_PREFIX="$(printf "%b" "${accent_color}${TREE_MID}${RESET}")"
+    _wipe_dir="$(pwd)"
+
+    _brain_dir="${OPENCLAW_CONFIG_DIR:-}"
+    if [ -n "$_brain_dir" ] && [ -d "$_brain_dir" ] && [[ "${WIPE_BRAIN:-}" =~ ^[Yy]$ ]]; then
+        _brain_display="${_brain_dir/#$HOME/~}"
+        if [ -f "${_wipe_dir}/.env.install" ]; then
+            printf "%b %b %s\n" "$TUI_PREFIX" "${CYAN}[INFO]${RESET}" "Removing .env.install..."
+            command -v trash >/dev/null 2>&1 && trash "${_wipe_dir}/.env.install" 2>/dev/null || rm -f "${_wipe_dir}/.env.install"
+        fi
+        printf "%b %b Removing %s...\n" "$TUI_PREFIX" "${CYAN}[INFO]${RESET}" "$_brain_display"
+        command -v trash >/dev/null 2>&1 && trash "$_brain_dir" 2>/dev/null || rm -rf "$_brain_dir"
+    fi
+
+    _docker_ids="$(docker compose ps -a -q 2>/dev/null)" || true
+    if [ -n "$_docker_ids" ]; then
+        _docker_names_raw="$(docker compose ps -a --format '{{.Name}}' 2>/dev/null | paste -sd ' ' - | sed 's/ *$//')" || true
+        _docker_wipe_prompt="Wipe Docker? ${DIM}${accent_color}$(echo "$_docker_names_raw" | sed "s/ / ${RESET}${accent_color} | ${RESET}${DIM}${accent_color}/g")${RESET}"
+        ask_yes_no_tui "$_docker_wipe_prompt" "y" "WIPE_DOCKER" 1 0
+        if [[ "$WIPE_DOCKER" =~ ^[Yy]$ ]]; then
+            ensure_docker_running 2>/dev/null || true
+            printf "%b %b %s\n" "$TUI_PREFIX" "${CYAN}[INFO]${RESET}" "Removing existing docker stack..."
+            docker compose down --remove-orphans </dev/null >/dev/null 2>&1 || true
+            printf "%b %b %b%s%b\n" "$TUI_PREFIX" "${GREEN}[ OK ]${RESET}" "$GREEN" "Docker wiped" "$RESET"
+        fi
+    fi
+
+    set +e
+    run_workspace_setup
+    _wr=$?
+    set -e
+    [ "$_wr" -ne 0 ] && warn "Workspace setup had issues; continuing." || true
+    set +e
+    run_gateway_config
+    _gw=$?
+    set -e
+    [ "$_gw" -ne 0 ] && warn "Gateway config had issues; continuing." || true
+}

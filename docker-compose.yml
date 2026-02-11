@@ -1,0 +1,94 @@
+name: ${COMPOSE_PROJECT_NAME:-openclaw}
+
+services:
+  openclaw-gateway:
+    env_file:
+      - .env
+      - .env.install
+    image: ${OPENCLAW_IMAGE:-alpine/openclaw:latest}
+    user: ${OPENCLAW_USER:-node}
+    # Security Parameters (Managed by install_clawfather.sh)
+    cap_drop: []
+    security_opt: ["no-new-privileges:true"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    network_mode: ${OPENCLAW_NETWORK_MODE:-bridge}
+    restart: no
+    ports:
+      - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
+      - "${OPENCLAW_BRIDGE_PORT:-18790}:18790"
+    environment:
+      - HOME=${OPENCLAW_DOCKER_HOME:-/home/node}
+      # User-scoped global installs (node user) go to $HOME/.local/bin; ensure it's on PATH
+      - PATH=${OPENCLAW_DOCKER_HOME:-/home/node}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      #    CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY}
+      #    CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY}
+      #    CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE}
+      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}
+      - OPENCLAW_GATEWAY_BIND=${OPENCLAW_GATEWAY_BIND:-lan}
+      - OPENCLAW_SERVICE_MANAGER=${OPENCLAW_SERVICE_MANAGER:-none}
+      - OPENCLAW_NO_SERVICE=${OPENCLAW_NO_SERVICE:-true}
+      - SANDBOX_MODE=${SANDBOX_MODE:-true}
+      - TERM=${TERM:-xterm-256color}
+      - COLUMNS=${COLUMNS:-80}
+      - LINES=${LINES:-24}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - ZAI_API_KEY=${ZAI_API_KEY}
+      # Empty when USE_OLLAMA=false (cloud-only); app skips Ollama discovery when unset/empty
+      # - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-}
+      # - OLLAMA_API_KEY=${OLLAMA_API_KEY}
+      - WORKSPACE_DIR=${OPENCLAW_DOCKER_WORKSPACE:-/home/node/.openclaw/workspace}
+
+    volumes:
+      # Config and workspace (container paths from install wizard / config.yaml)
+      - ${OPENCLAW_CONFIG_DIR:-./.openclaw}:${OPENCLAW_DOCKER_BASE:-/home/node/.openclaw}
+      - ${OPENCLAW_WORKSPACE_DIR:-./.openclaw/workspace}:${OPENCLAW_DOCKER_WORKSPACE:-/home/node/.openclaw/workspace}
+      # Optional: mirror projects folder (.env.install sets these; install uncomments when MIRROR_PROJECTS=yes)
+      - ${LOCAL_PROJECTS_DIR:-}:${DOCKER_PROJECTS_PATH:-}
+      # Map your local skills folder so you can edit/add them from host
+      - ${OPENCLAW_SKILLS_DIR:-./skills}:${OPENCLAW_DOCKER_BASE:-/home/node/.openclaw}/skills${OPENCLAW_VOL_MODE:-}
+      # (Cool Tweak #2) Persist command history across reboots (when OPENCLAW_USER=root; when node, consider /home/node/.local/share/history)
+      - openclaw_history:/root/.local/share/history
+
+      # (Important) Map the model configuration file
+      - ./config.yaml:/app/config.yaml
+      # (Cool Tweak #6) God Mode: Grant agent Docker control (Comment out to disable)
+      # - /var/run/docker.sock:/var/run/docker.sock
+
+    # use an init process (PID 1) inside the container.
+    init:  true
+    # --allow-unconfigured: lets gateway start before "openclaw setup" has run (avoids restart loop)
+    # OPENCLAW_GATEWAY_CMD: "node dist/index.js" (alpine) or "openclaw" (fourplayers — no dist/index.js in image)
+    # Tee gateway stdout/stderr to OPENCLAW_DOCKER_BASE/logs/gateway.log
+    command:
+      [
+        "sh", "-c",
+        "mkdir -p ${OPENCLAW_DOCKER_BASE:-/home/node/.openclaw}/logs && ${OPENCLAW_GATEWAY_CMD:-node dist/index.js} gateway --allow-unconfigured --bind ${OPENCLAW_GATEWAY_BIND:-lan} --port 18789 2>&1 | tee -a ${OPENCLAW_DOCKER_BASE:-/home/node/.openclaw}/logs/gateway.log",
+      ]
+
+  openclaw-cli:
+    env_file:
+      - .env
+      - .env.install
+    image: ${OPENCLAW_IMAGE:-alpine/openclaw:latest}
+    environment:
+      HOME: ${OPENCLAW_DOCKER_HOME:-/home/node}
+      PATH: ${OPENCLAW_DOCKER_HOME:-/home/node}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      TERM: xterm-256color
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      OPENCLAW_GATEWAY_URL: ws://openclaw-gateway:${OPENCLAW_GATEWAY_PORT:-18789}
+      BROWSER: echo
+      # CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY}
+      # CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY}
+      # CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE}
+    volumes:
+      - ${OPENCLAW_CONFIG_DIR:-./.openclaw}:${OPENCLAW_DOCKER_BASE:-/home/node/.openclaw}
+      - ${OPENCLAW_WORKSPACE_DIR:-./.openclaw/workspace}:${OPENCLAW_DOCKER_WORKSPACE:-/home/node/.openclaw/workspace}
+      - ${OPENCLAW_SKILLS_DIR:-./skills}:${OPENCLAW_DOCKER_BASE:-/home/node/.openclaw}/skills${OPENCLAW_VOL_MODE:-}
+    stdin_open: true
+    tty: true
+    init: true
+    entrypoint: ["node", "dist/index.js"]
+
+volumes:
+  openclaw_history:

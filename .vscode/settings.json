@@ -1,0 +1,17 @@
+{
+    // Exclude these from Search (Ctrl+Shift+F) and from Cursor indexing
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/build": true,
+        "**/.venv": true,
+        "**/__pycache__": true,
+        "skills/*/**": true
+    },
+    // Optional: hide from Explorer and reduce file watcher load
+    "files.exclude": {},
+    "files.watcherExclude": {
+        "**/node_modules": true,
+        "**/.venv": true
+    }
+}

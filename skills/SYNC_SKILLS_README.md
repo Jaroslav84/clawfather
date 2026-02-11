@@ -6,7 +6,7 @@ The `sync_skills.sh` script is a universal tool for managing OpenClaw skills. It
 
 From the project root:
 ```bash
-bash skills/sync_skills.sh
+bash src/sync_skills.sh
 ```
 
 ## 🛠️ How it Works
@@ -23,7 +23,7 @@ bash skills/sync_skills.sh
 ## 📁 Adding New Skills
 
 To add a new skill to the sync process:
-1.  Open [CLAWHUB_SKILLS.md](../CLAWHUB_SKILLS.md).
+1.  Open [CLAWHUB_SKILLS.md](./CLAWHUB_SKILLS.md).
 2.  Ensure the category header has the `<!-- folder: ... -->` metadata.
 3.  Add the skill to the table with its download link (containing `slug=...`).
 4.  Run the script!
