@@ -6,6 +6,9 @@
 # Install-generated (paths, user choices)
 .env.install
 
+# Private dir
+private/
+
 # User config (wizard writes here; paths, model choices)
 
 

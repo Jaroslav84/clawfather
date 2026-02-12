@@ -39,6 +39,18 @@ ask_prompt() {
 # $1=title, $2=wizard (optional, "1" = chained style; active section uses ◆)
 header() { header_tui "$1" "" "${2:-0}"; }
 
+# Mask secrets (tokens, API keys, passwords) in command string before debug print.
+# AGENTS.md: Mask secrets as *** in the printed command.
+_mask_debug_secrets() {
+    local cmd="$1"
+    [ -z "$cmd" ] && return
+    # --gateway-token, --gateway-password, --password, --*-api-key VALUE (space or =)
+    cmd=$(echo "$cmd" | sed -E 's/--(gateway-token|gateway-password|password|anthropic-api-key|gemini-api-key|zai-api-key|openai-api-key|ollama-api-key)([[:space:]]*=[[:space:]]*|[[:space:]]+)([^[:space:]]+|"[^"]*"|'"'"'[^'"'"']*'"'"')/--\1 ***/g')
+    # -e VAR=value for vars containing KEY, TOKEN, SECRET, PASSWORD
+    cmd=$(echo "$cmd" | sed -E 's/(-e )([A-Za-z0-9_]*(KEY|TOKEN|SECRET|PASSWORD)=)([^[:space:]]+|"[^"]*"|'"'"'[^'"'"']*'"'"')/\1\2***/g')
+    echo "$cmd"
+}
+
 # Format long docker exec commands with newlines per logical part (for debug output)
 format_debug_cmd() {
     local cmd="$1"
@@ -189,6 +201,7 @@ _debug_cmd_color() { printf '%b' "${dim_color:-$DIM}"; }
 print_debug_cmd() {
     [ -z "${INSTALL_DEBUG:-}" ] && return 0
     local wall="$1" cmd="$2" formatted
+    cmd=$(_mask_debug_secrets "$cmd")
     local _cmd_color
     _cmd_color=$(_debug_cmd_color)
     # Debug label should stand out (orange); fall back to yellow if theme isn't loaded.

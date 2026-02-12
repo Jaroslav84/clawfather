@@ -55,11 +55,17 @@ Use `access_token` from the response.
 }
 ```
 
-### 4. E2EE device verification
+### 4. Enable plugin
+
+```bash
+docker compose exec openclaw-gateway node dist/index.js plugins enable matrix
+```
+
+### 5. E2EE device verification
 
 On first connection with `encryption: true`, verify the bot device in Element (or another client) to enable key sharing.
 
-### 5. Restart gateway
+### 6. Restart gateway
 
 ```bash
 docker compose restart openclaw-gateway

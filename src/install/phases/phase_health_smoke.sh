@@ -42,6 +42,7 @@ run_phase_health_smoke() {
         _ob_cmd="docker exec -it \"$CONTAINER_NAME\" $OPENCLAW_CMD onboard --flow quickstart --mode local --gateway-port $_ob_port --gateway-bind $_ob_bind --gateway-auth $_ob_auth $_ob_secret_arg $_ob_secret_val --no-install-daemon --skip-health --tailscale $_ob_tailscale --workspace $_ob_workspace ${_ob_extra[*]}"
         print_debug_cmd "$TUI_PREFIX" "$_ob_cmd"
         info "Running onboard wizard in container (params prefilled from install)..."
+        set +e
         docker exec -it "$CONTAINER_NAME" $OPENCLAW_CMD onboard \
             --flow quickstart --mode local \
             --gateway-port "$_ob_port" --gateway-bind "$_ob_bind" --gateway-auth "$_ob_auth" \
@@ -50,27 +51,20 @@ run_phase_health_smoke() {
             --tailscale "$_ob_tailscale" \
             --workspace "$_ob_workspace" \
             "${_ob_extra[@]}"
+        _ob_rc=$?
+        set -e
         tput rmcup 2>/dev/null || true
         stty sane 2>/dev/null || true
         while read -t 0.01 -r -n 10000 discard; do :; done 2>/dev/null || true
-        header_tui "Back to Clawfather" "" "1"
-        _back_lines=1
+        acc=$(get_accent)
+        printf "%b%s%b%b%b\n" "$acc" "$DIAMOND_EMPTY" "$acc" "Back to Clawfather" "$RESET"
         printf "%b│%b\n" "$accent_color" "$RESET"
-        _back_lines=$((_back_lines + 1))
         printf "%b│%b  %s\n" "$accent_color" "$RESET" "Onboarding finished. Use the dashboard to control OpenClaw:"
-        _back_lines=$((_back_lines + 1))
         printf "%b│%b  %bhttp://localhost:${_cfg_port:-18789}/?token=${_cfg_token}%b\n" "$accent_color" "$RESET" "$BOLD" "$RESET"
-        _back_lines=$((_back_lines + 1))
         printf "%b│%b  %s\n" "$accent_color" "$RESET" "Logs: docker compose logs -f $GATEWAY_SERVICE   |   Shell: docker compose exec -it $GATEWAY_SERVICE sh"
-        _back_lines=$((_back_lines + 1))
         printf "%b│%b\n" "$accent_color" "$RESET"
-        header_tui_collapse "Back to Clawfather" "$_back_lines"
-    fi
-
-    if [[ "$RUN_ONBOARD" =~ ^[Yy]$ ]]; then
-        SMOKE_CMD="$OPENCLAW_CMD agent --agent main --message \"Reply with 'We are good bro', nothing else\""
-        _smoke_full="docker exec -e OPENCLAW_GATEWAY_TOKEN=*** \"$CONTAINER_NAME\" /bin/sh -c \"$SMOKE_CMD\""
-        print_debug_cmd "$TUI_PREFIX" "$_smoke_full"
-        run_setup_phase "Smoke test: OpenClaw reply with OK" "$SMOKE_CMD" 60
+        sleep 2
+        SMOKE_CMD="node dist/index.js agent --agent main --timeout 240 --message \"Reply with 'We are good bro', nothing else\""
+        run_setup_phase "Smoke test: OpenClaw reply with OK" "$SMOKE_CMD" 250
     fi
 }

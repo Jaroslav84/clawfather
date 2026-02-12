@@ -175,11 +175,11 @@ ask_tui "Workspace directory on Docker" "$OPENCLAW_DOCKER_BASE/workspace" "OPENC
 OPENCLAW_DOCKER_WORKSPACE="${OPENCLAW_DOCKER_WORKSPACE_INPUT:-$OPENCLAW_DOCKER_BASE/workspace}"
 
 if [ "$MIRROR_PROJECTS" = true ]; then
-    DOCKER_PROJECTS_BASENAME="$(basename "$(cd "$PROJECTS_DIR" 2>/dev/null && pwd || echo "$PROJECTS_DIR")")"
-    # Projects on Docker: default = previous answer (workspace dir) + /$DOCKER_PROJECTS_BASENAME
-    _default_docker_projects="$OPENCLAW_DOCKER_WORKSPACE/$DOCKER_PROJECTS_BASENAME"
-    ask_tui "Projects directory on Docker" "$_default_docker_projects" "DOCKER_PROJECTS_PATH_INPUT" "$TREE_TOP" 1 0
+    # Projects on Docker: default = workspace directory (mount projects folder directly into workspace)
+    _default_docker_projects="$OPENCLAW_DOCKER_WORKSPACE"
+    ask_tui "${HOST_OS_LABEL:-macOS} Projects directory on Docker" "$_default_docker_projects" "DOCKER_PROJECTS_PATH_INPUT" "$TREE_TOP" 1 0
     DOCKER_PROJECTS_PATH="${DOCKER_PROJECTS_PATH_INPUT:-$_default_docker_projects}"
+    DOCKER_PROJECTS_BASENAME="$(basename "${DOCKER_PROJECTS_PATH}" 2>/dev/null || echo "workspace")"
 else
     DOCKER_PROJECTS_BASENAME="Projects"
     DOCKER_PROJECTS_PATH=""

@@ -137,6 +137,8 @@ No, page is not loading" "" "" "DASH_LOADED" 0 "true" 1 0 2000
         _ph5_lines=$((_ph5_lines + $(wc -l < "$_ph5_restart_log" 2>/dev/null || echo 0)))
         rm -f "$_ph5_restart_log"
         docker restart "$CONTAINER_NAME" >/dev/null 2>&1
+        printf "%b %b %bContainer restarted%b\n" "$TUI_PREFIX" "${GREEN}[ OK ]${RESET}" "$GREEN" "$RESET"
+        _ph5_lines=$((_ph5_lines + 1))
         docker exec "$CONTAINER_NAME" rm -f "${CONTAINER_HOME:-/home/node}/.openclaw/gateway.pid" 2>/dev/null || true
         sleep 3
         wait_for_condition_tui "Starting secure gateway..." '_c=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 "http://127.0.0.1:'"${_cfg_port}"'/" 2>/dev/null); [ -n "$_c" ] && [ "$_c" != "000" ]' 90

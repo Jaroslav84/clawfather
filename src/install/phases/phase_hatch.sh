@@ -7,64 +7,44 @@ run_phase_hatch() {
 Open the Web UI
 Do this later"
     select_tui "How do you want to hatch your bot?" "$HATCH_OPTIONS" "" "" "HATCH_SEL" 0 "true" 1 0
-    if [[ "$HATCH_SEL" == *"TUI"* ]]; then
-        _tui_port="${_cfg_port:-18789}"
-        _tui_url="ws://127.0.0.1:$_tui_port"
-        _tui_first_msg="Wake up, my friend!"
-        if [ -f "$PROJECT_DIR/.env" ]; then
-            _hatch_from_env=$(set -a; . "$PROJECT_DIR/.env" 2>/dev/null; set +a; printf '%s' "${HATCH_INFO:-}")
-            [ -n "$_hatch_from_env" ] && _tui_first_msg="$_hatch_from_env"
-        fi
-        if [[ "$GATEWAY_AUTH_SEL" == *"Password"* ]]; then
-            _tui_cmd="docker exec -it \"$CONTAINER_NAME\" $OPENCLAW_CMD tui --url $_tui_url --password *** --message \"$_tui_first_msg\""
-            _tui_auth_args=(--password "$GATEWAY_PASSWORD" --message "$_tui_first_msg")
+
+    _hatch_auth_secret="${_cfg_token}"
+    _hatch_dash_url_display="http://localhost:${_cfg_port:-18789} (token redacted)"
+    if [[ "${GATEWAY_AUTH_SEL:-}" == *"Password"* ]]; then
+        _hatch_auth_secret="${GATEWAY_PASSWORD}"
+        _hatch_dash_url_display="http://localhost:${_cfg_port:-18789} (password auth)"
+    fi
+    _hatch_gateway_url="ws://0.0.0.0:${_cfg_port:-18789}"
+    _hatch_ws_dir="${OPENCLAW_DOCKER_WORKSPACE:-${CONTAINER_HOME:-/home/node}/.openclaw/workspace}"
+    _hatch_projects_dir="${DOCKER_PROJECTS_PATH:-$_hatch_ws_dir}"
+    _hatch_sessions_dir="${CONTAINER_HOME:-/home/node}/.openclaw/agents/main/sessions"
+    _hatch_names=$( (cd "$PROJECT_DIR" && docker compose ps --format '{{.Name}}' 2>/dev/null) | paste -sd ' ' - | sed 's/ *$//')
+    _hatch_image=$(docker inspect "$CONTAINER_NAME" --format '{{.Config.Image}}' 2>/dev/null || true)
+    [ -z "$_hatch_image" ] && _hatch_image="${OPENCLAW_IMAGE:-alpine/openclaw:latest}"
+    _hatch_host_note=""
+    if [ "${USE_OLLAMA:-false}" = true ]; then
+        if [ "${BRIDGE_ENABLED:-false}" = "true" ]; then
+            _hatch_host_note="- Host access from container: use host.docker.internal\n- Ollama (host) base URL: http://host.docker.internal:11434/v1"
         else
-            _tui_cmd="docker exec -it \"$CONTAINER_NAME\" $OPENCLAW_CMD tui --url $_tui_url --token $_cfg_token --message \"$_tui_first_msg\""
-            _tui_auth_args=(--token "${_cfg_token}" --message "$_tui_first_msg")
+            _hatch_host_note="- Host access is disabled (Bridge is OFF). If you need Ollama on the host, enable Bridge and re-run setup."
         fi
-        print_debug_cmd "$TUI_PREFIX" "$_tui_cmd"
-        header_tui "Hatching" "" "1"
-        _hatch_lines=1
-        printf "%b %b %s\n" "$TUI_PREFIX" "${CYAN}[INFO]${RESET}" "Running hatch (TUI) in container; exit TUI to return to setup..."
-        _hatch_lines=2
-        _hatch_auth_secret="${_cfg_token}"
-        _hatch_dash_url_display="http://localhost:${_cfg_port:-18789} (token redacted)"
-        if [[ "$GATEWAY_AUTH_SEL" == *"Password"* ]]; then
-            _hatch_auth_secret="${GATEWAY_PASSWORD}"
-            _hatch_dash_url_display="http://localhost:${_cfg_port:-18789} (password auth)"
-        fi
-        _hatch_gateway_url="ws://0.0.0.0:${_cfg_port:-18789}"
-        _hatch_ws_dir="${OPENCLAW_DOCKER_WORKSPACE:-${CONTAINER_HOME:-/home/node}/.openclaw/workspace}"
-        _hatch_projects_dir="${DOCKER_PROJECTS_PATH:-${_hatch_ws_dir%/}/ai}"
-        _hatch_sessions_dir="${CONTAINER_HOME:-/home/node}/.openclaw/agents/main/sessions"
-        _hatch_states=$( (cd "$PROJECT_DIR" && docker compose ps -a --format '{{.State}}' 2>/dev/null) )
-        _hatch_names=$( (cd "$PROJECT_DIR" && docker compose ps --format '{{.Name}}' 2>/dev/null) | paste -sd ' ' - | sed 's/ *$//')
-        _hatch_image=$(docker inspect "$CONTAINER_NAME" --format '{{.Config.Image}}' 2>/dev/null || true)
-        [ -z "$_hatch_image" ] && _hatch_image="${OPENCLAW_IMAGE:-alpine/openclaw:latest}"
-        _hatch_host_note=""
-        if [ "${USE_OLLAMA:-false}" = true ]; then
-            if [ "${BRIDGE_ENABLED:-false}" = "true" ]; then
-                _hatch_host_note="- Host access from container: use host.docker.internal\n- Ollama (host) base URL: http://host.docker.internal:11434/v1"
-            else
-                _hatch_host_note="- Host access is disabled (Bridge is OFF). If you need Ollama on the host, enable Bridge and re-run setup."
-            fi
-        fi
-        _sec_on_off() { [ "${1:-false}" = "true" ] && echo "ON" || echo "OFF"; }
-        _hatch_sec_sandbox="$(_sec_on_off "${SANDBOX_MODE:-false}")"
-        _hatch_sec_root="$(_sec_on_off "${ROOT_MODE:-false}")"
-        _hatch_sec_safe="$(_sec_on_off "${SAFE_MODE:-false}")"
-        _hatch_sec_bridge="$(_sec_on_off "${BRIDGE_ENABLED:-false}")"
-        _hatch_sec_browser="$(_sec_on_off "${BROWSER_CONTROL:-false}")"
-        _hatch_sec_tools="$(_sec_on_off "${TOOLS_ELEVATED:-false}")"
-        _hatch_sec_hooks="$(_sec_on_off "${HOOKS_ENABLED:-false}")"
-        _hatch_sec_nnp="$(_sec_on_off "${NO_NEW_PRIVS:-false}")"
-        _hatch_sec_autostart="$(_sec_on_off "${AUTO_START:-false}")"
-        _hatch_sec_paranoid="$(_sec_on_off "${PARANOID_MODE:-false}")"
-        _hatch_sec_offline="$(_sec_on_off "${NETWORKING_OFFLINE:-false}")"
-        _hatch_sec_readonly="$(_sec_on_off "${READ_ONLY_MOUNTS:-false}")"
-        _hatch_sec_god="$(_sec_on_off "${GOD_MODE:-false}")"
-        _hatch_payload="$(cat <<EOF
-Context for this session:
+    fi
+    _sec_on_off() { [ "${1:-false}" = "true" ] && echo "ON" || echo "OFF"; }
+    _hatch_sec_sandbox="$(_sec_on_off "${SANDBOX_MODE:-false}")"
+    _hatch_sec_root="$(_sec_on_off "${ROOT_MODE:-false}")"
+    _hatch_sec_safe="$(_sec_on_off "${SAFE_MODE:-false}")"
+    _hatch_sec_bridge="$(_sec_on_off "${BRIDGE_ENABLED:-false}")"
+    _hatch_sec_browser="$(_sec_on_off "${BROWSER_CONTROL:-false}")"
+    _hatch_sec_tools="$(_sec_on_off "${TOOLS_ELEVATED:-false}")"
+    _hatch_sec_hooks="$(_sec_on_off "${HOOKS_ENABLED:-false}")"
+    _hatch_sec_nnp="$(_sec_on_off "${NO_NEW_PRIVS:-false}")"
+    _hatch_sec_autostart="$(_sec_on_off "${AUTO_START:-false}")"
+    _hatch_sec_paranoid="$(_sec_on_off "${PARANOID_MODE:-false}")"
+    _hatch_sec_offline="$(_sec_on_off "${NETWORKING_OFFLINE:-false}")"
+    _hatch_sec_readonly="$(_sec_on_off "${READ_ONLY_MOUNTS:-false}")"
+    _hatch_sec_god="$(_sec_on_off "${GOD_MODE:-false}")"
+    _hatch_payload="$(cat <<EOF
+Environment settings (permanent):
 - You are running inside a Docker container on Linux.
 - You DO NOT have direct access to the host (macOS) filesystem.
 - Do not assume host paths like /Users/... exist inside the container.
@@ -102,9 +82,30 @@ Security features enabled:
 Please respond with: done
 EOF
 )"
-        _hatch_debug_blob="Extra hatch info (sent after hatch):"$'\n'"$_hatch_payload"
-        printf -v _hatch_payload_q '%q' "$_hatch_payload"
-        _hatch_send_cmd="docker exec -e OPENCLAW_BIND=\"${GATEWAY_BIND:-lan}\" -e HOME=\"${CONTAINER_HOME:-/home/node}\" -e OPENCLAW_GATEWAY_TOKEN=\"${_hatch_auth_secret}\" \"$CONTAINER_NAME\" $OPENCLAW_CMD agent --agent main --message ${_hatch_payload_q}"
+    printf -v _hatch_payload_q '%q' "$_hatch_payload"
+    _hatch_send_cmd="docker exec -e OPENCLAW_BIND=\"${GATEWAY_BIND:-lan}\" -e HOME=\"${CONTAINER_HOME:-/home/node}\" -e OPENCLAW_GATEWAY_TOKEN=\"${_hatch_auth_secret}\" \"$CONTAINER_NAME\" $OPENCLAW_CMD agent --agent main --message ${_hatch_payload_q}"
+    _hatch_debug_blob="Extra hatch info (sent after hatch):"$'\n'"$_hatch_payload"
+
+    if [[ "$HATCH_SEL" == *"TUI"* ]]; then
+        _tui_port="${_cfg_port:-18789}"
+        _tui_url="ws://127.0.0.1:$_tui_port"
+        _tui_first_msg="Wake up, my friend!"
+        if [ -f "$PROJECT_DIR/.env" ]; then
+            _hatch_from_env=$(set -a; . "$PROJECT_DIR/.env" 2>/dev/null; set +a; printf '%s' "${HATCH_INFO:-}")
+            [ -n "$_hatch_from_env" ] && _tui_first_msg="$_hatch_from_env"
+        fi
+        if [[ "$GATEWAY_AUTH_SEL" == *"Password"* ]]; then
+            _tui_cmd="docker exec -it \"$CONTAINER_NAME\" $OPENCLAW_CMD tui --url $_tui_url --password *** --message \"$_tui_first_msg\""
+            _tui_auth_args=(--password "$GATEWAY_PASSWORD" --message "$_tui_first_msg")
+        else
+            _tui_cmd="docker exec -it \"$CONTAINER_NAME\" $OPENCLAW_CMD tui --url $_tui_url --token $_cfg_token --message \"$_tui_first_msg\""
+            _tui_auth_args=(--token "${_cfg_token}" --message "$_tui_first_msg")
+        fi
+        print_debug_cmd "$TUI_PREFIX" "$_tui_cmd"
+        header_tui "Hatching" "" "1"
+        _hatch_lines=1
+        printf "%b %b %s\n" "$TUI_PREFIX" "${CYAN}[INFO]${RESET}" "Running hatch (TUI) in container; exit TUI to return to setup..."
+        _hatch_lines=2
         tput smcup 2>/dev/null || true
         docker exec -it -e OPENCLAW_BIND=${GATEWAY_BIND:-lan} "$CONTAINER_NAME" $OPENCLAW_CMD tui --url "$_tui_url" "${_tui_auth_args[@]}"
         tput rmcup 2>/dev/null || true
@@ -117,6 +118,15 @@ EOF
         printf "%b %b %s\n" "$TUI_PREFIX" "${CYAN}[INFO]${RESET}" "Sending Docker info to OpenClaw..."
         ( eval "$_hatch_send_cmd" >/dev/null 2>&1 ) &
         printf "%b %b %byes sir!%b\n" "$TUI_PREFIX" "${GREEN}[ OK ]${RESET}" "$GREEN" "$RESET"
+    elif [[ "$HATCH_SEL" == *"later"* ]] || [[ "$HATCH_SEL" == *"Web UI"* ]]; then
+        header_tui "Docker Hatching" "" "1"
+        ask_yes_no_tui "Send Docker context to OpenClaw now?" "y" "DOCKER_HATCH_NOW" 1 0
+        if [[ "$DOCKER_HATCH_NOW" == "y" ]]; then
+            print_debug_cmd "$TUI_PREFIX" "docker exec -e OPENCLAW_BIND=\"${GATEWAY_BIND:-lan}\" -e HOME=\"${CONTAINER_HOME:-/home/node}\" -e OPENCLAW_GATEWAY_TOKEN=*** \"$CONTAINER_NAME\" $OPENCLAW_CMD agent --agent main --message <payload>"
+            printf "%b %b %s\n" "$TUI_PREFIX" "${CYAN}[INFO]${RESET}" "Sending Docker info to OpenClaw..."
+            ( eval "$_hatch_send_cmd" >/dev/null 2>&1 ) &
+            printf "%b %b %byes sir!%b\n" "$TUI_PREFIX" "${GREEN}[ OK ]${RESET}" "$GREEN" "$RESET"
+        fi
     fi
 
     _cfg_dir="${OPENCLAW_CONFIG_DIR:-${OPENCLAW_CONFIG_DIR_DEFAULT:-$HOME/.openclaw}}"
@@ -160,7 +170,7 @@ EOF
     _ws_display="${OPENCLAW_DOCKER_WORKSPACE:-${CONTAINER_HOME:-/home/node}/.openclaw/workspace}"
     _mac_projects="${LOCAL_PROJECTS_DIR:-$PROJECTS_DIR}"
     [ -n "${_mac_projects:-}" ] && _mac_projects_display="${_mac_projects/#$HOME/~}" || _mac_projects_display="none"
-    _docker_projects_display="${DOCKER_PROJECTS_PATH:-${_ws_display%/}/ai}"
+    _docker_projects_display="${DOCKER_PROJECTS_PATH:-$_ws_display}"
 
     printf "%b%s%b%b%b\n" "$accent_color" "$DIAMOND_EMPTY" "$accent_color" "Summary" "$RESET"
     printf "%b│%b\n" "$accent_color" "$RESET"
@@ -204,7 +214,7 @@ EOF
     printf "%b│%b    %b[ Docker Management ]%b\n" "$accent_color" "$RESET" "$BOLD" "$RESET"
     printf "%b│%b      %b%-18s%b %s\n" "$accent_color" "$RESET" "${dim_color:-$DIM}" "Gateway logs:" "$RESET" "docker compose logs -f $GATEWAY_SERVICE"
     printf "%b│%b      %b%-18s%b %s\n" "$accent_color" "$RESET" "${dim_color:-$DIM}" "CLI (exec):" "$RESET" "docker compose exec $GATEWAY_SERVICE node dist/index.js <command>"
-    printf "%b│%b      %b%-18s%b %s\n" "$accent_color" "$RESET" "${dim_color:-$DIM}" "Stop:" "$RESET" "docker compose stop"
+    printf "%b│%b      %b%-18s%b %s\n" "$accent_color" "$RESET" "${dim_color:-$DIM}" "Start/Stop/Restart:" "$RESET" "docker compose start | docker compose stop | docker compose restart"
     printf "%b│%b      %b%-18s%b %s\n" "$accent_color" "$RESET" "${dim_color:-$DIM}" "Update:" "$RESET" "docker compose pull && docker compose up -d"
     printf "%b│%b      %b%-18s%b %s\n" "$accent_color" "$RESET" "${dim_color:-$DIM}" "Shell:" "$RESET" "docker compose exec -it $GATEWAY_SERVICE sh"
     printf "%b│%b      %b%-18s%b %s\n" "$accent_color" "$RESET" "${dim_color:-$DIM}" "Stats:" "$RESET" "docker stats \$(docker compose ps -q $GATEWAY_SERVICE)"
@@ -235,5 +245,5 @@ EOF
     printf "%b│%b\n" "$accent_color" "$RESET"
 
     ywizz_head_left_smoke_exit
-    printf "%b%s%b\n" "$accent_color" "Installer succeeded." "$RESET"
+    printf "%b%s%b\n" "$accent_color" "Installation succeeded. Use the dashboard link above to control OpenClaw." "$RESET"
 }

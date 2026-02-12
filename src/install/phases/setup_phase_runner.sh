@@ -19,7 +19,7 @@ run_setup_phase() {
     local _ph_fifo phase_debug_count=0 phase_output_count=0
     local _ph_max_timeout=$(( timeout_sec * 10 )) _ph_timeout_count=0 _ph_bg_pid
     _ph_fifo=""
-    if [[ "$cmd" != *"setup"* ]] && [[ "$cmd" != *"config set"* ]] && [[ "$cmd" != *"health"* ]]; then
+    if [[ "$cmd" != *"setup"* ]] && [[ "$cmd" != *"config set"* ]] && [[ "$cmd" != *"health"* ]] && [[ "$cmd" != *"agent"* ]]; then
         _ph_fifo=$(mktemp -u 2>/dev/null || echo "/tmp/ph_fifo_$$")
         mkfifo "$_ph_fifo" 2>/dev/null || true
     fi
@@ -101,6 +101,11 @@ run_setup_phase() {
                     out_color="${GREEN}"
                     _phase_plain_ok=1
                 fi
+                if [[ "$clean_line" =~ "We are good bro" ]]; then
+                    out_prefix="${GREEN}[ OK ]${RESET}"
+                    out_color="${GREEN}"
+                    _phase_plain_ok=1
+                fi
                 if [[ "$clean_line" =~ "Failed to discover Ollama" ]]; then
                     out_prefix="${RED}[ERROR]${RESET}"
                     out_color="${RED}"
@@ -133,12 +138,15 @@ run_setup_phase() {
                 fi
                 phase_output_count=$((phase_output_count + 1))
             else
+                if ! kill -0 "$_ph_bg_pid" 2>/dev/null; then
+                    break
+                fi
                 _ph_timeout_count=$((_ph_timeout_count + 1))
                 if [ "$_ph_timeout_count" -ge "$_ph_max_timeout" ]; then
                     printf "\033[?25h"
                     printf "%b %b %bPhase timed out (%ds) - continuing.%b\n" "$TUI_PREFIX" "${YELLOW}[WARN]${RESET}" "$YELLOW" "$timeout_sec" "$RESET" >&2
                     phase_output_count=$((phase_output_count + 1))
-                    kill "$_ph_bg_pid" 2>/dev/null || true
+                    kill -9 -"$_ph_bg_pid" 2>/dev/null || kill -9 "$_ph_bg_pid" 2>/dev/null || true
                     break
                 fi
             fi
@@ -169,6 +177,11 @@ run_setup_phase() {
             out_prefix="${CYAN}[INFO]${RESET}"
             out_color="$CYAN"
             if [[ "$clean_line" =~ ^[[:space:]]*Workspace[[:space:]]OK: ]] || [[ "$clean_line" =~ ^[[:space:]]*Sessions[[:space:]]OK: ]]; then
+                out_prefix="${GREEN}[ OK ]${RESET}"
+                out_color="${GREEN}"
+                _phase_plain_ok=1
+            fi
+            if [[ "$clean_line" =~ "We are good bro" ]]; then
                 out_prefix="${GREEN}[ OK ]${RESET}"
                 out_color="${GREEN}"
                 _phase_plain_ok=1

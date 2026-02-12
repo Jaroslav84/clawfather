@@ -32,7 +32,7 @@ workspace:
   workspace_dir: ~/OpenClaw/workspace
   mirror_projects: true
   projects_dir: ~/Projects
-  docker_projects_path: ~/.openclaw/workspace/Projects
+  docker_projects_path: ~/.openclaw/workspace
   docker_base: ~/.openclaw
   docker_workspace: ~/.openclaw/workspace
 
